@@ -119,4 +119,60 @@ describe('Token', () => {
             });
         });
     });
+
+    describe('Delegated Token Transfers', () => {
+        let amount, txn, result;
+
+        beforeEach(async () => {
+            amount = tokens(100);
+            txn = await token.connect(deployer).approve(exchange.address, amount);
+            result = await txn.wait();
+            
+        });
+
+        describe('Success', () => {
+            beforeEach(async () => {
+                txn = await token.connect(exchange).transferFrom(
+                    deployer.address, 
+                    receiver.address, 
+                    amount);
+                result = await txn.wait();
+            });
+
+            it('transfers token balances', async () => {
+                expect(await token.balanceOf(deployer.address)).to.be.equal(tokens(20999900));
+                expect(tokens(await token.balanceOf(receiver.address))).to.be.equal(tokens(amount));
+            });
+
+            it('resets the allowence', async () => {
+                expect(await token.allowence(deployer.address, exchange.address)).to.be.equal(0)
+            });
+
+            it('emits a transfer event', async () => {
+                const event = result.events[0];
+                const args = event.args
+                
+                expect(event.event).to.equal('Transfer');
+                expect(args.from).to.equal(deployer.address);
+                expect(args.to).to.equal(receiver.address);
+                expect(args.value).to.equal(amount);
+            });
+        });
+
+        // describe('Failure', async () => {
+        //     const invalidAmount = tokens(100000000);
+
+        //     it('transfers invalid amount and fails', async () => {
+        //         let amount = tokens(invalidAmount);
+        //         amount = amount + tokens(10000); // Increase by 30%
+        //         console.log("amount: ", amount);
+        //         console.log("invalidAmount: ", invalidAmount);
+        //         txn = await token.connect(deployer).approve(exchange.address, amount);
+        //         await txn.wait();
+        //         expect(await token.connect(exchange).transferFrom(deployer.address, receiver.address, invalidAmount));
+
+        //     });
+            
+        // });
+    });
 });
